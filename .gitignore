@@ -2,3 +2,4 @@ logs/*.log
 .vscode/
 Thumbs.db
 desktop.ini
+config/config.php
