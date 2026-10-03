@@ -8,8 +8,9 @@ Environment: Windows 11, XAMPP 8.2.12 (Apache 2.4.58, PHP 8.2.12, MariaDB 10.4.3
 
 | Test ID | Requirement | Scenario | Steps | Expected | Actual | Status | Date | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TC-S01 | NFR-13, security | Direct browser access to the config folder | Open http://localhost/mattegoda-day-planner/config/ | 403 Forbidden | 403 Forbidden | Pass | 28 Sep 2026 | test-evidence/TC-S01.png |
+| TC-S01 | §5.3 Security | Direct browser access to the config folder | Open http://localhost/mattegoda-day-planner/config/ | 403 Forbidden | 403 Forbidden | Pass | 28 Sep 2026 | test-evidence/TC-S01.png |
 | TC-S02 | Security | Directory listing disabled | Open http://localhost/mattegoda-day-planner/api/ | 403 Forbidden (no file list) | 403 Forbidden | Pass | 28 Sep 2026 | test-evidence/TC-S02.png |
+| TC-S03 | NFR-13 | Scripts cannot run from the uploads folder | Create uploads/places/test.php (echo 'RAN'); request it in the browser; delete the file | 403 Forbidden; "RAN" never shown | 403 Forbidden (Apache/2.4.58); "RAN" not shown | Pass | 4 Oct 2026 | test-evidence/TC-S03.png |
 
 ## Database tests
 
