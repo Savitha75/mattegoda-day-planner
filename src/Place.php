@@ -31,7 +31,9 @@ final class Place
     }
 
     /**
-     * Active places with their categories and first photo (FR-01, FR-02).
+     * Active places with their categories and first photo (FR-01, FR-02),
+     * optionally filtered by category and keyword (FR-06 to FR-10).
+     * @param array{categories?: int[], q?: string} $filters
      * @return Place[]
      */
     public static function findAll(array $filters = [], string $sort = 'distance_asc'): array
@@ -39,7 +41,26 @@ final class Place
         $orderBy = self::SORTS[$sort] ?? self::SORTS['distance_asc'];
         $where   = ['p.is_active = 1'];
         $params  = [];
-        // Next step: category (FR-06 to FR-08) and keyword (FR-09, FR-10) conditions are added here.
+
+        // FR-06 to FR-08: places in ANY of the selected categories
+        $categoryIds = $filters['categories'] ?? [];
+        if ($categoryIds !== []) {
+            $marks   = implode(',', array_fill(0, count($categoryIds), '?'));   // e.g. "?,?"
+            $where[] = "p.place_id IN (SELECT pc2.place_id
+                                         FROM place_category pc2
+                                        WHERE pc2.category_id IN ($marks))";
+            array_push($params, ...$categoryIds);
+        }
+
+        // FR-09: keyword in name or description (trimmed; case-insensitive via the _ci collation)
+        $keyword = trim($filters['q'] ?? '');
+        if ($keyword !== '') {
+            $like     = '%' . addcslashes($keyword, '%_\\') . '%';   // treat % and _ as normal characters
+            $where[]  = '(p.name LIKE ? OR p.description LIKE ?)';
+            $params[] = $like;
+            $params[] = $like;
+        }
+        // FR-10: every condition in $where is joined with AND below
 
         $sql = 'SELECT p.place_id, p.name, p.summary, p.distance_km,
                        GROUP_CONCAT(pc.category_id ORDER BY pc.is_primary DESC, pc.category_id) AS category_ids,
