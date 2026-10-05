@@ -3,3 +3,5 @@
 .place-card       { transition: transform .15s ease, box-shadow .15s ease; }
 .place-card:hover { transform: translateY(-3px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.12) !important; }
 .place-card .card-title a:focus-visible { outline: 2px solid #198754; outline-offset: 2px; }
+.place-photo { aspect-ratio: 16 / 9; object-fit: cover; }
+#place-map   { height: 300px; }

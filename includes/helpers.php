@@ -40,3 +40,33 @@ function log_error(string $message): void
     $line = sprintf('[%s] %s%s', date('Y-m-d H:i:s'), $message, PHP_EOL);
     error_log($line, 3, __DIR__ . '/../logs/app.log');
 }
+
+/** FR-13: the value as safe HTML, or "Not available" when it is empty. */
+function show_value(?string $value): string
+{
+    if ($value === null || trim($value) === '') {
+        return '<span class="text-muted fst-italic">Not available</span>';
+    }
+    return h($value);
+}
+
+/** "06:30:00" -> "6:30 am" */
+function format_time(?string $time): ?string
+{
+    if ($time === null) {
+        return null;
+    }
+    $t = DateTime::createFromFormat('H:i:s', $time);
+    return $t ? $t->format('g:i a') : null;
+}
+
+/** 90 -> "1 h 30 min" */
+function format_duration(?int $minutes): ?string
+{
+    if ($minutes === null || $minutes <= 0) {
+        return null;
+    }
+    $h = intdiv($minutes, 60);
+    $m = $minutes % 60;
+    return trim(($h > 0 ? "$h h " : '') . ($m > 0 ? "$m min" : ''));
+}
