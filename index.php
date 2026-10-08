@@ -14,19 +14,11 @@ if (!is_string($sort) || !array_key_exists($sort, $sortOptions)) {
     $sort = 'distance_asc';
 }
 
-// FR-06, FR-07: selected categories. Keep only digits that are real category IDs.
+// FR-06, FR-07, FR-09: filters (same helpers as the map and the API, so they always agree)
 $allCategories = Category::findAll();
-$selected = [];
-foreach ((array) ($_GET['cat'] ?? []) as $value) {
-    if (is_string($value) && ctype_digit($value) && isset($allCategories[(int) $value])) {
-        $selected[] = (int) $value;
-    }
-}
-$selected = array_values(array_unique($selected));
-
-// FR-09: keyword, trimmed and limited to 100 characters
-$q = is_string($_GET['q'] ?? null) ? trim($_GET['q']) : '';
-$q = mb_substr($q, 0, 100);
+$selected      = selected_categories($allCategories);
+$q             = search_keyword();
+$mapUrl        = url('map.php' . (filter_query($selected, $q) !== '' ? '?' . filter_query($selected, $q) : ''));
 
 $filtersActive = $selected !== [] || $q !== '';          // FR-11
 
@@ -45,8 +37,13 @@ $clearUrl  = url('index.php?' . http_build_query(['sort' => $sort]));
 $pageTitle = 'Places';
 require __DIR__ . '/includes/header.php';
 ?>
-<h1 class="h3 mb-1">Places near Mattegoda</h1>
-<p class="text-muted">Within 25 km of Salgas Junction</p>
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-1">Places near Mattegoda</h1>
+    <p class="text-muted mb-0">Within 25 km of Salgas Junction</p>
+  </div>
+  <a class="btn btn-outline-success btn-sm" href="<?= h($mapUrl) ?>">View on map</a>
+</div>
 
 <!-- FR-06 to FR-10: search, categories and sort in ONE form, so they always work together -->
 <form method="get" class="card card-body shadow-sm mb-4" role="search" aria-label="Filter places">

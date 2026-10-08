@@ -70,3 +70,32 @@ function format_duration(?int $minutes): ?string
     $m = $minutes % 60;
     return trim(($h > 0 ? "$h h " : '') . ($m > 0 ? "$m min" : ''));
 }
+
+/**
+ * FR-06, FR-22: valid category IDs from ?cat[]=… (anything else is ignored).
+ * @param array<int, Category> $all  result of Category::findAll()
+ * @return int[]
+ */
+function selected_categories(array $all): array
+{
+    $selected = [];
+    foreach ((array) ($_GET['cat'] ?? []) as $value) {
+        if (is_string($value) && ctype_digit($value) && isset($all[(int) $value])) {
+            $selected[] = (int) $value;
+        }
+    }
+    return array_values(array_unique($selected));
+}
+
+/** FR-09: ?q= trimmed and limited to 100 characters. */
+function search_keyword(): string
+{
+    $q = is_string($_GET['q'] ?? null) ? trim($_GET['q']) : '';
+    return mb_substr($q, 0, 100);
+}
+
+/** Query string for the current filters, e.g. "cat%5B0%5D=2&q=park" (empty when none). */
+function filter_query(array $categories, string $q): string
+{
+    return http_build_query(array_filter(['cat' => $categories, 'q' => $q], fn($v) => $v !== '' && $v !== []));
+}

@@ -102,7 +102,7 @@ final class Place
         }
         // FR-10: every condition in $where is joined with AND below
 
-        $sql = 'SELECT p.place_id, p.name, p.summary, p.distance_km,
+        $sql = 'SELECT p.place_id, p.name, p.summary, p.distance_km, p.latitude, p.longitude,
                        GROUP_CONCAT(pc.category_id ORDER BY pc.is_primary DESC, pc.category_id) AS category_ids,
                        (SELECT ph.file_path
                           FROM place_photo ph
@@ -112,7 +112,7 @@ final class Place
                   FROM place p
                   LEFT JOIN place_category pc ON pc.place_id = p.place_id
                  WHERE ' . implode(' AND ', $where) . '
-                 GROUP BY p.place_id, p.name, p.summary, p.distance_km
+                 GROUP BY p.place_id, p.name, p.summary, p.distance_km, p.latitude, p.longitude
                  ORDER BY ' . $orderBy;
 
         $stmt = Database::getConnection()->prepare($sql);
