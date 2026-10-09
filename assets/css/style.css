@@ -13,3 +13,5 @@
                      font-weight: 700; border: 3px solid #ffc107; box-shadow: 0 1px 4px rgba(0,0,0,.5); }
 .start-dot   { width: 20px; height: 20px; font-size: .7rem; border-width: 2px; vertical-align: middle; }
 .legend-dot  { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+/* The card's stretched link covers the whole card; lift the Add button above it */
+.btn-plan { position: relative; z-index: 2; }

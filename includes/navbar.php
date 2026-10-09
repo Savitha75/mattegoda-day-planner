@@ -19,7 +19,8 @@ $links = [
           <li class="nav-item">
             <a class="nav-link<?= $current === $file ? ' active' : '' ?>"
                <?= $current === $file ? 'aria-current="page"' : '' ?>
-               href="<?= url($file) ?>"><?= h($label) ?></a>
+               href="<?= url($file) ?>"><?= h($label) ?><?php if ($file === 'plan.php'): ?>
+                 <span class="badge rounded-pill text-bg-light ms-1" data-plan-count hidden></span><?php endif; ?></a>
           </li>
         <?php endforeach; ?>
       </ul>

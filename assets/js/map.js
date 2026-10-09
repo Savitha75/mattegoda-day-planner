@@ -74,6 +74,21 @@
     link.textContent = 'View details';
     box.appendChild(link);
 
+    // FR-26: add from a map popup
+    if (typeof DayPlan !== 'undefined') {
+      var addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'btn btn-sm ms-2 ' + (DayPlan.has(place.id) ? 'btn-success' : 'btn-outline-success');
+      addBtn.textContent = DayPlan.has(place.id) ? '✓ In your plan' : '+ Add to plan';
+      addBtn.dataset.addToPlan = place.id;
+      addBtn.dataset.name = place.name;
+      addBtn.addEventListener('click', function (e) {
+        e.stopPropagation();          // handle it here only, not twice
+        DayPlan.handleAdd(addBtn);
+      });
+      box.appendChild(addBtn);
+    }
+
     return box;
   }
 

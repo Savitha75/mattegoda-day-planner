@@ -117,6 +117,13 @@ require __DIR__ . '/includes/header.php';
     <!-- NFR-07: when this record was last updated -->
     <p class="small text-muted">Last updated: <?= show_value($updated) ?></p>
 
+    <!-- FR-26: add from the detail page -->
+    <p>
+      <button type="button" class="btn btn-outline-success btn-plan"
+              data-add-to-plan="<?= $place->placeId ?>" data-name="<?= h($place->name) ?>">+ Add to plan</button>
+      <a class="btn btn-link" href="<?= h(url('plan.php')) ?>">View my plan</a>
+    </p>
+
     <?php if ($isNatural): ?>
       <!-- NFR-08: safety notice on natural places -->
       <div class="alert alert-warning small" role="note">

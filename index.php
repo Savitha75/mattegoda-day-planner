@@ -121,6 +121,8 @@ require __DIR__ . '/includes/header.php';
                     ? h(number_format($place->distanceKm, 1)) . ' km from Salgas Junction'
                     : 'Distance not available' ?>
             </p>
+            <button type="button" class="btn btn-sm btn-outline-success btn-plan mt-2 align-self-start"
+                    data-add-to-plan="<?= $place->placeId ?>" data-name="<?= h($place->name) ?>">+ Add to plan</button>
           </div>
         </article>
       </div>
