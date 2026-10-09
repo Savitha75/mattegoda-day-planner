@@ -3,23 +3,36 @@ var DayPlan = (function () {
   'use strict';
 
   var KEY = 'mattegoda.dayPlan.v1';
+  var MAX_STOPS = 6;                              // FR-30: more than this gets a warning
+  var TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;  // "08:00" … "23:59"
+  var DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;        // "2026-10-15"
+
+  // Today's date in the visitor's own time zone, as YYYY-MM-DD
+  function today() {
+    var d = new Date();
+    return d.getFullYear() + '-' +
+           String(d.getMonth() + 1).padStart(2, '0') + '-' +
+           String(d.getDate()).padStart(2, '0');
+  }
 
   function emptyPlan() {
     return { stops: [], startTime: '08:00', visitDate: '' };
   }
 
-  // Read the plan. Anything broken or missing gives an empty plan instead of an error.
+  // Read the plan. Anything broken or missing gives safe defaults instead of an error.
   function load() {
+    var plan = emptyPlan();
     try {
       var data = JSON.parse(localStorage.getItem(KEY));
       if (data && Array.isArray(data.stops)) {
-        data.stops = data.stops.map(Number).filter(function (id) { return id > 0; });
-        return Object.assign(emptyPlan(), data);
+        plan.stops = data.stops.map(Number).filter(function (id) { return id > 0; });
+        if (TIME_PATTERN.test(data.startTime)) { plan.startTime = data.startTime; }
+        if (DATE_PATTERN.test(data.visitDate)) { plan.visitDate = data.visitDate; }
       }
     } catch (e) {
       // storage blocked (private mode) or corrupted: start with an empty plan
     }
-    return emptyPlan();
+    return plan;
   }
 
   function save(plan) {
@@ -60,6 +73,43 @@ var DayPlan = (function () {
     var plan = load();
     plan.stops = [];
     save(plan);
+  }
+
+  // FR-29: move a stop one place up (step -1) or down (step +1)
+  function move(id, step) {
+    var plan = load();
+    id = Number(id);
+    var from = plan.stops.indexOf(id);
+    var to = from + step;
+    if (from === -1 || to < 0 || to >= plan.stops.length) {
+      return false;
+    }
+    plan.stops[from] = plan.stops[to];      // swap the two neighbours
+    plan.stops[to] = id;
+    save(plan);
+    return true;
+  }
+
+  // FR-31: start time, e.g. "07:30"
+  function setStartTime(value) {
+    if (!TIME_PATTERN.test(value)) {
+      return false;
+    }
+    var plan = load();
+    plan.startTime = value;
+    save(plan);
+    return true;
+  }
+
+  // Visit date: today or later (needed for the closed-day check, FR-34)
+  function setVisitDate(value) {
+    if (!DATE_PATTERN.test(value) || value < today()) {
+      return false;
+    }
+    var plan = load();
+    plan.visitDate = value;
+    save(plan);
+    return true;
   }
 
   // Number next to "Plan my day" in the navbar
@@ -113,8 +163,13 @@ var DayPlan = (function () {
     var name = btn.dataset.name || 'This place';
     if (add(btn.dataset.addToPlan)) {
       notify(name + ' was added to your plan.', 'success');
+      var count = load().stops.length;
+      if (count > MAX_STOPS) {                                         // FR-30: warn, but keep it
+        notify('Your plan now has ' + count + ' stops. More than ' + MAX_STOPS +
+               ' stops may not fit into one day.', 'warning');
+      }
     } else {
-      notify(name + ' is already in your plan.', 'warning');      // FR-27
+      notify(name + ' is already in your plan.', 'warning');           // FR-27
     }
   }
 
@@ -135,7 +190,8 @@ var DayPlan = (function () {
 
   return {
     load: load, save: save, add: add, remove: remove, clear: clear, has: has,
-    notify: notify, handleAdd: handleAdd,
+    move: move, setStartTime: setStartTime, setVisitDate: setVisitDate, today: today,
+    notify: notify, handleAdd: handleAdd, MAX_STOPS: MAX_STOPS,
     markButtons: function () { markButtons(load()); }
   };
 })();
