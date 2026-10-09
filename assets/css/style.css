@@ -15,3 +15,9 @@
 .legend-dot  { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
 /* The card's stretched link covers the whole card; lift the Add button above it */
 .btn-plan { position: relative; z-index: 2; }
+/* Plan page route map (FR-23) */
+#plan-map { height: 360px; }
+.stop-marker span { display: flex; align-items: center; justify-content: center;
+                    width: 26px; height: 26px; border-radius: 50%; background: #198754; color: #fff;
+                    font-weight: 700; font-size: .8rem; border: 2px solid #fff;
+                    box-shadow: 0 1px 4px rgba(0,0,0,.45); }

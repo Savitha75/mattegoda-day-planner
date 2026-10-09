@@ -99,3 +99,13 @@ function filter_query(array $categories, string $q): string
 {
     return http_build_query(array_filter(['cat' => $categories, 'q' => $q], fn($v) => $v !== '' && $v !== []));
 }
+
+/** Send a JSON answer with an HTTP status code and stop (used by the api/ files). */
+function json_response(int $status, array $data): never
+{
+    http_response_code($status);
+    header('Content-Type: application/json; charset=utf-8');
+    header('X-Content-Type-Options: nosniff');
+    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}

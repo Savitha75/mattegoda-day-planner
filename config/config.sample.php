@@ -13,4 +13,7 @@ define('APP_NAME', 'Mattegoda Day Planner');
 define('BASE_URL', '/mattegoda-day-planner');
 define('APP_DEBUG', false);
 
+// Routing service (FR-23 to FR-25, FR-47)
+define('OSRM_URL', 'https://router.project-osrm.org');
+
 date_default_timezone_set('Asia/Colombo');

@@ -57,6 +57,9 @@
     var plan = DayPlan.load();
     root.textContent = '';
 
+    // FR-23: redraw the route whenever the stops change (also clears it for an empty plan)
+    if (typeof PlanRoute !== 'undefined') { PlanRoute.update(plan.stops, places); }
+
     // Empty plan
     if (plan.stops.length === 0) {
       var box = el('div', 'text-center py-5');
