@@ -5,7 +5,7 @@ var PlanRoute = (function () {
   var box     = document.getElementById('plan-map');
   var summary = document.getElementById('route-summary');
   if (!box || !summary || typeof L === 'undefined') {
-    return { update: function () {} };                 // no map on this page
+    return { update: function () {}, route: function () { return null; }, status: function () { return 'failed'; } };
   }
 
   var WAIT_MS = 12000;   // the server gives up after 10 s (FR-25); this is only a safety net
@@ -27,6 +27,8 @@ var PlanRoute = (function () {
   var layer   = L.layerGroup().addTo(map);   // numbered stops + route line, redrawn on each change
   var lastKey = null;                        // stop order that is currently drawn
   var current = null;                        // the request in progress
+  var lastRoute = null;                      // FR-32: the route for lastKey, once it has arrived
+  var status    = 'none';                    // 'none', 'loading', 'ok' or 'failed'
 
   // 65 -> "1 h 5 min"
   function formatMinutes(min) {
@@ -47,7 +49,8 @@ var PlanRoute = (function () {
     return div;
   }
 
-  function update(stops, places) {
+  // onResult (optional) is called when the route arrives or fails
+  function update(stops, places, onResult) {
     var key = stops.join(',');
     if (key === lastKey) {
       return;                                // only the date or time changed: same route
@@ -57,6 +60,8 @@ var PlanRoute = (function () {
       current.abort();                       // the order changed: cancel the old request
     }
     layer.clearLayers();
+    lastRoute = null;
+    status = stops.length > 0 ? 'loading' : 'none';
 
     // FR-25: the stop markers are drawn first, so they stay even if routing fails
     var bounds = [start];
@@ -96,17 +101,26 @@ var PlanRoute = (function () {
         // FR-24: totals
         showSummary('Total: ' + route.distanceKm.toFixed(1) + ' km · about ' +
                     formatMinutes(route.durationMin) + ' driving', 'fw-semibold mt-2 mb-0');
+        lastRoute = route;
+        status = 'ok';
+        if (onResult) { onResult(); }                 // FR-32: the page can now work out the times
       })
       .catch(function () {
         if (request !== current) { return; }          // cancelled on purpose: ignore
         // FR-25: exact SRS message; the markers above stay on the map
         showSummary('Route guidance is temporarily unavailable.', 'alert alert-warning mt-2 mb-0');
         lastKey = null;                                // try again on the next change
+        status = 'failed';
+        if (onResult) { onResult(); }
       })
       .finally(function () {
         clearTimeout(timer);
       });
   }
 
-  return { update: update };
+  return {
+    update: update,
+    route: function () { return lastRoute; },
+    status: function () { return status; }
+  };
 })();

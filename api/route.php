@@ -45,7 +45,7 @@ foreach ($route['legs'] as $i => $leg) {
 
 json_response(200, [
     'distanceKm'  => round($route['distance'] / 1000, 1),
-    'durationMin' => (int) round($route['duration'] / 60),
+    'durationMin' => array_sum(array_column($legs, 'durationMin')),   // = sum of the legs, so FR-24 and FR-32 always agree
     'legs'        => $legs,
     'geometry'    => $route['geometry'],
 ]);

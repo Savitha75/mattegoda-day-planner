@@ -32,6 +32,11 @@ $data = array_map(fn(Place $p) => [
         'colour' => $c->badgeColour,
     ], $p->getCategories()),                       // primary category first
     'url'        => url('place.php?id=' . $p->placeId),
+    // FR-32 to FR-34: what the time budget needs ("06:00:00" -> "06:00")
+    'openingTime' => $p->openingTime !== null ? substr($p->openingTime, 0, 5) : null,
+    'closingTime' => $p->closingTime !== null ? substr($p->closingTime, 0, 5) : null,
+    'closedDays'  => $p->closedDays,
+    'visitMin'    => $p->visitDurationMin,
 ], $places);
 
 echo json_encode(

@@ -9,6 +9,8 @@
 
   var places = {};          // place id -> place data from the API
   var focusAfter = null;    // FR-29: keep keyboard focus on a stop after it moves
+  var poyaDates = [];       // FR-34: Poya days from config.php, e.g. ["2026-10-25", ...]
+  try { poyaDates = JSON.parse(root.dataset.poya || '[]'); } catch (e) { poyaDates = []; }
 
   function el(tag, className, text) {
     var e = document.createElement(tag);
@@ -58,7 +60,7 @@
     root.textContent = '';
 
     // FR-23: redraw the route whenever the stops change (also clears it for an empty plan)
-    if (typeof PlanRoute !== 'undefined') { PlanRoute.update(plan.stops, places); }
+    PlanRoute.update(plan.stops, places, showBudget);
 
     // Empty plan
     if (plan.stops.length === 0) {
@@ -87,7 +89,12 @@
       root.appendChild(warn);
     }
 
-    root.appendChild(el('p', 'mb-2', n + (n === 1 ? ' stop' : ' stops') + ' in your plan'));
+    // FR-32, FR-33: the day summary is filled in by showBudget()
+    var budget = el('div', 'mb-3');
+    budget.id = 'plan-budget';
+    root.appendChild(budget);
+
+    root.appendChild(el('p', 'mb-2', n +(n === 1 ? ' stop' : ' stops') + ' in your plan'));
 
     var list = el('ol', 'list-group list-group-numbered mb-3');
     plan.stops.forEach(function (id, index) {
@@ -101,6 +108,11 @@
       info.appendChild(link);
       info.appendChild(el('div', 'small text-muted',
         place.distanceKm !== null ? place.distanceKm.toFixed(1) + ' km from Salgas Junction' : 'Distance not available'));
+
+      // FR-32, FR-34: arrival time and warnings for this stop (filled in by showBudget)
+      var times = el('div', 'small mt-1');
+      times.dataset.stopInfo = id;
+      info.appendChild(times);
 
       // FR-29: up / down buttons (real <button>s, so Tab + Enter works)
       var actions = el('div', 'btn-group btn-group-sm');
@@ -149,6 +161,69 @@
       if (btn) { btn.focus(); }
       focusAfter = null;
     }
+
+    showBudget();   // uses the route already loaded, if the stops did not change
+  }
+
+  // FR-32 to FR-34: the day summary, the late-finish warning and each stop's times
+  function showBudget() {
+    var box = document.getElementById('plan-budget');
+    if (!box) {
+      return;                                   // empty plan: nothing to show
+    }
+    box.textContent = '';
+
+    var route = PlanRoute.route();
+    if (!route) {
+      box.appendChild(el('p', 'small text-muted mb-0', PlanRoute.status() === 'failed'
+        ? 'Arrival times need the route, which is not available right now.'
+        : 'Working out arrival times…'));
+      return;
+    }
+
+    var plan = DayPlan.load();
+    var b = PlanBudget.calculate(plan.stops, places, route, plan.startTime, plan.visitDate, poyaDates);
+
+    // FR-32: the four totals
+    var card = el('div', 'card card-body shadow-sm');
+    card.appendChild(el('h2', 'h6 mb-2', 'Day summary'));
+    var row = el('div', 'row row-cols-2 row-cols-md-4 g-2 text-center');
+    [
+      ['Road distance', b.distanceKm.toFixed(1) + ' km'],
+      ['Travel time', PlanBudget.formatDuration(b.travelMin)],
+      ['Visit time', PlanBudget.formatDuration(b.visitMin)],
+      ['Estimated finish', PlanBudget.formatClock(b.finish)]
+    ].forEach(function (item) {
+      var col = el('div', 'col');
+      col.appendChild(el('div', 'small text-muted', item[0]));
+      col.appendChild(el('div', 'fw-semibold', item[1]));
+      row.appendChild(col);
+    });
+    card.appendChild(row);
+    card.appendChild(el('p', 'small text-muted mt-2 mb-0',
+      'Finish is when you leave the last stop. The journey home is not included.'));
+    box.appendChild(card);
+
+    // FR-33: finishing after 20:00
+    if (b.late) {
+      var late = el('div', 'alert alert-warning mt-2 mb-0',
+        'Estimated finish ' + PlanBudget.formatClock(b.finish) +
+        ' is after 8:00 pm. This plan may not be achievable in one day.');
+      late.setAttribute('role', 'alert');
+      box.appendChild(late);
+    }
+
+    // FR-32, FR-34: times and warnings under each stop
+    b.stops.forEach(function (s) {
+      var slot = root.querySelector('[data-stop-info="' + s.placeId + '"]');
+      if (!slot) { return; }
+      slot.textContent = '';
+      slot.appendChild(el('div', '', 'Arrive ' + PlanBudget.formatClock(s.arrive) +
+        ' · stay ' + PlanBudget.formatDuration(s.stay) + ' · leave ' + PlanBudget.formatClock(s.leave)));
+      s.warnings.forEach(function (w) {
+        slot.appendChild(el('div', 'text-danger fw-semibold', '⚠ ' + w));
+      });
+    });
   }
 
   // Clicks: move, remove, clear

@@ -16,4 +16,10 @@ define('APP_DEBUG', false);
 // Routing service (FR-23 to FR-25, FR-47)
 define('OSRM_URL', 'https://router.project-osrm.org');
 
+// Full Moon Poya days for 2026 (FR-34), from the Government holiday gazette. Update every year.
+define('POYA_DATES', [
+    '2026-01-03', '2026-02-01', '2026-03-02', '2026-04-01', '2026-05-01', '2026-05-30',
+    '2026-06-29', '2026-07-29', '2026-08-27', '2026-09-26', '2026-10-25', '2026-11-24', '2026-12-23',
+]);
+
 date_default_timezone_set('Asia/Colombo');

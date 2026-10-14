@@ -4,7 +4,7 @@ require __DIR__ . '/includes/bootstrap.php';
 
 $pageTitle   = 'Plan my day';
 $useMap      = true;                                // FR-23: Leaflet for the route map
-$pageScripts = ['plan-route.js', 'plan-page.js'];  // route first: plan-page.js calls it
+$pageScripts = ['plan-budget.js', 'plan-route.js', 'plan-page.js'];  // budget and route before the page
 require __DIR__ . '/includes/header.php';
 ?>
 <h1 class="h3 mb-1">Plan my day</h1>
@@ -16,6 +16,7 @@ require __DIR__ . '/includes/header.php';
          data-api="<?= h(url('api/places.php')) ?>"
          data-list-url="<?= h(url('index.php')) ?>"
          data-map-url="<?= h(url('map.php')) ?>"
+         data-poya="<?= h(json_encode(POYA_DATES)) ?>"
          aria-live="polite">
       <p class="text-muted">Loading your plan…</p>
     </div>
