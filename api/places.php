@@ -37,6 +37,7 @@ $data = array_map(fn(Place $p) => [
     'closingTime' => $p->closingTime !== null ? substr($p->closingTime, 0, 5) : null,
     'closedDays'  => $p->closedDays,
     'visitMin'    => $p->visitDurationMin,
+    'travelTips'  => $p->travelTips,                  // FR-36: printed plan
 ], $places);
 
 echo json_encode(

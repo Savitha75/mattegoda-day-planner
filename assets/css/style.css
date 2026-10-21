@@ -21,3 +21,10 @@
                     width: 26px; height: 26px; border-radius: 50%; background: #198754; color: #fff;
                     font-weight: 700; font-size: .8rem; border: 2px solid #fff;
                     box-shadow: 0 1px 4px rgba(0,0,0,.45); }
+
+/* FR-36: when printing, show only the plan summary */
+@media print {
+  .navbar, footer, #toast-area, .plan-screen { display: none !important; }
+  #print-summary { font-size: 11pt; }
+  #print-summary tr { page-break-inside: avoid; }
+}

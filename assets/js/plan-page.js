@@ -11,6 +11,8 @@
   var focusAfter = null;    // FR-29: keep keyboard focus on a stop after it moves
   var poyaDates = [];       // FR-34: Poya days from config.php, e.g. ["2026-10-25", ...]
   try { poyaDates = JSON.parse(root.dataset.poya || '[]'); } catch (e) { poyaDates = []; }
+  var saveBox    = document.getElementById('plan-save');      // FR-35: save / open card
+  var saveResult = document.getElementById('save-result');
 
   function el(tag, className, text) {
     var e = document.createElement(tag);
@@ -58,6 +60,7 @@
   function render() {
     var plan = DayPlan.load();
     root.textContent = '';
+    if (saveResult) { saveResult.textContent = ''; }   // a shown code belongs to the plan as it was saved
 
     // FR-23: redraw the route whenever the stops change (also clears it for an empty plan)
     PlanRoute.update(plan.stops, places, showBudget);
@@ -167,9 +170,11 @@
 
   // FR-32 to FR-34: the day summary, the late-finish warning and each stop's times
   function showBudget() {
+    var plan = DayPlan.load();
     var box = document.getElementById('plan-budget');
     if (!box) {
-      return;                                   // empty plan: nothing to show
+      buildPrint(plan, null, null);             // empty plan: nothing to show
+      return;
     }
     box.textContent = '';
 
@@ -178,11 +183,12 @@
       box.appendChild(el('p', 'small text-muted mb-0', PlanRoute.status() === 'failed'
         ? 'Arrival times need the route, which is not available right now.'
         : 'Working out arrival times…'));
+      buildPrint(plan, null, null);
       return;
     }
 
-    var plan = DayPlan.load();
     var b = PlanBudget.calculate(plan.stops, places, route, plan.startTime, plan.visitDate, poyaDates);
+    buildPrint(plan, b, route);
 
     // FR-32: the four totals
     var card = el('div', 'card card-body shadow-sm');
@@ -224,6 +230,71 @@
         slot.appendChild(el('div', 'text-danger fw-semibold', '⚠ ' + w));
       });
     });
+  }
+
+  // FR-36: the printable summary. It is hidden on screen and is the only thing printed (see style.css).
+  function buildPrint(plan, b, route) {
+    var box = document.getElementById('print-summary');
+    if (!box) { return; }
+    box.textContent = '';
+
+    box.appendChild(el('h1', 'h4 mb-1', 'My day plan'));
+    box.appendChild(el('p', 'mb-3', 'Visit date: ' + plan.visitDate +
+      ' · Start: Salgas Junction, Mattegoda at ' +
+      PlanBudget.formatClock(PlanBudget.toMinutes(plan.startTime))));
+
+    if (plan.stops.length === 0) {
+      box.appendChild(el('p', '', 'Your plan is empty.'));
+      return;
+    }
+
+    var table = el('table', 'table table-sm table-bordered align-top');
+    var head = el('tr');
+    ['#', 'Place', 'Arrive', 'Leave', 'Distance from previous stop', 'Travel tips'].forEach(function (h) {
+      head.appendChild(el('th', '', h));
+    });
+    var thead = el('thead');
+    thead.appendChild(head);
+    table.appendChild(thead);
+
+    var tbody = el('tbody');
+    plan.stops.forEach(function (id, i) {
+      var p = places[id];
+      if (!p) { return; }
+      var s = b ? b.stops[i] : null;
+      var leg = route ? route.legs[i] : null;
+
+      var row = el('tr');
+      row.appendChild(el('td', '', String(i + 1)));
+      var nameCell = el('td', '', p.name);
+      if (s) {
+        s.warnings.forEach(function (w) { nameCell.appendChild(el('div', 'small fw-semibold', '⚠ ' + w)); });
+      }
+      row.appendChild(nameCell);
+      row.appendChild(el('td', '', s ? PlanBudget.formatClock(s.arrive) : '–'));
+      row.appendChild(el('td', '', s ? PlanBudget.formatClock(s.leave) : '–'));
+      row.appendChild(el('td', '', leg
+        ? leg.distanceKm.toFixed(1) + ' km (' + leg.durationMin + ' min)' + (i === 0 ? ' from Salgas Junction' : '')
+        : '–'));
+      row.appendChild(el('td', 'small', p.travelTips || 'No tips recorded.'));
+      tbody.appendChild(row);
+    });
+    table.appendChild(tbody);
+    box.appendChild(table);
+
+    if (b) {
+      box.appendChild(el('p', 'mb-1', 'Total road distance ' + b.distanceKm.toFixed(1) + ' km · travel ' +
+        PlanBudget.formatDuration(b.travelMin) + ' · visits ' + PlanBudget.formatDuration(b.visitMin) +
+        ' · estimated finish ' + PlanBudget.formatClock(b.finish) + ' (leaving the last stop)'));
+      if (b.late) {
+        box.appendChild(el('p', 'fw-semibold mb-1', '⚠ The finish is after 8:00 pm. This plan may not be achievable in one day.'));
+      }
+    } else {
+      box.appendChild(el('p', 'mb-1', 'Arrival times and distances were not available because route guidance was unavailable.'));
+    }
+    // NFR-06: the same advisory notice as on screen
+    box.appendChild(el('p', 'small mt-3 mb-0', 'Advisory only. Route guidance is not based on live traffic conditions ' +
+      'and must not be used as a live navigation aid while driving. Check opening times before you travel.'));
   }
 
   // Clicks: move, remove, clear
@@ -275,7 +346,97 @@
         input.value = DayPlan.load().startTime;
       }
     }
+
+    // FR-32 to FR-34: arrival times, finish and closed-day warnings follow the new date or start time
+    showBudget();
   });
+
+  // FR-35: fetch JSON; a failed request becomes an Error with the server's message
+  function requestJson(url, options) {
+    return fetch(url, options).then(function (response) {
+      return response.json().catch(function () { return {}; }).then(function (data) {
+        if (!response.ok) { throw new Error(data.error || ('HTTP ' + response.status)); }
+        return data;
+      });
+    });
+  }
+
+  function showSavedCode(code) {
+    saveResult.textContent = '';
+    var box = el('div', 'alert alert-success mb-0');
+    box.appendChild(el('div', '', 'Plan saved. Your reference code is:'));
+    box.appendChild(el('div', 'fs-3 fw-bold font-monospace my-1', code));
+    var link = el('a', 'small', 'Link that opens this plan');
+    link.href = window.location.pathname + '?code=' + code;
+    box.appendChild(link);
+    saveResult.appendChild(box);
+  }
+
+  // FR-35: open a saved plan by its code
+  function openSaved(code) {
+    requestJson(saveBox.dataset.api + '?code=' + encodeURIComponent(code), { headers: { Accept: 'application/json' } })
+      .then(function (data) {
+        if (DayPlan.load().stops.length > 0 &&
+            !window.confirm('Replace your current plan with saved plan ' + data.refCode + '?')) {
+          return;
+        }
+        var stops = data.stops.filter(function (id) { return places[id]; });   // drop places no longer listed
+        var visitDate = data.visitDate < DayPlan.today() ? DayPlan.today() : data.visitDate;
+        DayPlan.save({ stops: stops, startTime: data.startTime, visitDate: visitDate });
+        render();
+        DayPlan.notify('Saved plan ' + data.refCode + ' opened.', 'success');
+        if (stops.length < data.stops.length) {
+          DayPlan.notify('A place in the saved plan is no longer listed and was left out.', 'warning');
+        }
+        if (visitDate !== data.visitDate) {
+          DayPlan.notify('The saved visit date has passed, so today is used instead.', 'secondary');
+        }
+      })
+      .catch(function (err) {
+        DayPlan.notify(err.message, 'warning');
+      });
+  }
+
+  if (saveBox) {
+    // FR-35: save
+    document.getElementById('save-plan').addEventListener('click', function () {
+      var btn = this;
+      var plan = DayPlan.load();
+      if (plan.stops.length === 0) {
+        DayPlan.notify('Add at least one place before saving.', 'warning');
+        return;
+      }
+      btn.disabled = true;
+      requestJson(saveBox.dataset.api, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ stops: plan.stops, startTime: plan.startTime, visitDate: plan.visitDate })
+      })
+        .then(function (data) { showSavedCode(data.refCode); })
+        .catch(function (err) { DayPlan.notify('The plan could not be saved. ' + err.message, 'danger'); })
+        .finally(function () { btn.disabled = false; });
+    });
+
+    // FR-35: open by code
+    document.getElementById('load-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var code = document.getElementById('load-code').value.trim().toUpperCase();
+      if (!/^[A-Z0-9]{8}$/.test(code)) {
+        DayPlan.notify('A reference code has 8 letters and numbers.', 'warning');
+        return;
+      }
+      openSaved(code);
+    });
+
+    // FR-36: print
+    document.getElementById('print-plan').addEventListener('click', function () {
+      if (DayPlan.load().stops.length === 0) {
+        DayPlan.notify('Add at least one place before printing.', 'warning');
+        return;
+      }
+      window.print();
+    });
+  }
 
   // Load current place details, tidy the plan, then draw
   fetch(root.dataset.api, { headers: { Accept: 'application/json' } })
@@ -299,6 +460,12 @@
         DayPlan.setVisitDate(DayPlan.today());
       }
       render();
+
+      // FR-35: plan.php?code=K7M3QX9P opens that saved plan
+      var urlCode = new URLSearchParams(window.location.search).get('code');
+      if (urlCode && saveBox) {
+        openSaved(urlCode.trim().toUpperCase());
+      }
     })
     .catch(function () {
       root.textContent = '';

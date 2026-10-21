@@ -98,7 +98,7 @@ var PlanBudget = (function () {
     };
   }
 
-  return { calculate: calculate, formatClock: formatClock, formatDuration: formatDuration };
+  return { calculate: calculate, formatClock: formatClock, formatDuration: formatDuration, toMinutes: toMinutes };
 })();
 
 // Lets the same file be tested with Node.js (ignored in the browser)
