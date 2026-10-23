@@ -68,7 +68,9 @@ INSERT INTO place_photo (place_id, file_path, caption, source, sort_order) VALUE
   (13, 'uploads/places/viharamahadevi-park-1.jpg', 'Viharamahadevi Park, Colombo', 'Wikimedia Commons, A.Savin, Free Art License, https://commons.wikimedia.org/wiki/File:SL_Colombo_asv2020-01_img11_Viharamahadevi_Park.jpg', 1),
   (14, 'uploads/places/lotus-tower-1.jpg', 'Colombo Lotus Tower', 'Wikimedia Commons, Nisal Senanayaka, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Nelum_kuluna_lotus_tower_wide_angle_view.jpg', 1);
 
-COMMIT;
+-- Demo administrator for evaluation (FR-38, NFR-09): only the bcrypt hash is stored, never the password.
+-- The demo password is given in README.md. To set your own password, run: php tools/create_admin.php admin
+INSERT INTO admin_user (username, password_hash) VALUES
+  ('admin', '$2y$10$jFnR/yHLQweHT22Gcx6q1uBy.XjSvN6PlFivGjF4vdI390HU0RWOC');
 
--- The administrator account is NOT seeded here: create it with
--- database/create_admin.php so the password is hashed with password_hash() (FR-38, NFR-09).
+COMMIT;
