@@ -5,6 +5,9 @@ $links = [
     'map.php'   => 'Map',
     'plan.php'  => 'Plan my day',
 ];
+if (AuthService::check()) {
+    $links['admin/index.php'] = 'Admin';
+}
 ?>
 <nav class="navbar navbar-expand-lg navbar-dark bg-success">
   <div class="container">
@@ -23,6 +26,14 @@ $links = [
                  <span class="badge rounded-pill text-bg-light ms-1" data-plan-count hidden></span><?php endif; ?></a>
           </li>
         <?php endforeach; ?>
+        <?php if (AuthService::check()): ?>
+          <li class="nav-item ms-lg-2 d-flex align-items-center">
+            <form method="post" action="<?= url('admin/logout.php') ?>" class="my-1">
+              <?= csrf_field() ?>
+              <button type="submit" class="btn btn-sm btn-outline-light">Log out (<?= h($_SESSION['admin_name']) ?>)</button>
+            </form>
+          </li>
+        <?php endif; ?>
       </ul>
     </div>
   </div>

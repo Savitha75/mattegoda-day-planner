@@ -1,6 +1,6 @@
 <?php
 $pageTitle = $pageTitle ?? APP_NAME;
-$current   = basename($_SERVER['SCRIPT_NAME']);   // e.g. "index.php", used by navbar
+$current   = $current ?? basename($_SERVER['SCRIPT_NAME']);   // e.g. "index.php", used by navbar
 ?>
 <!DOCTYPE html>
 <html lang="en">

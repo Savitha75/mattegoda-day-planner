@@ -109,3 +109,24 @@ function json_response(int $status, array $data): never
     echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }
+
+/** NFR-12: one random token per session, sent with every form and checked on every POST. */
+function csrf_token(): string
+{
+    if (empty($_SESSION['csrf'])) {
+        $_SESSION['csrf'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf'];
+}
+
+/** The hidden field to put inside every <form method="post">. */
+function csrf_field(): string
+{
+    return '<input type="hidden" name="csrf" value="' . h(csrf_token()) . '">';
+}
+
+/** True when the posted token matches this session's token (constant-time comparison). */
+function csrf_valid(): bool
+{
+    return is_string($_POST['csrf'] ?? null) && hash_equals(csrf_token(), $_POST['csrf']);
+}

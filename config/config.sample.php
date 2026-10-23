@@ -22,4 +22,7 @@ define('POYA_DATES', [
     '2026-06-29', '2026-07-29', '2026-08-27', '2026-09-26', '2026-10-25', '2026-11-24', '2026-12-23',
 ]);
 
+// Administrator session (FR-43): logged out after this many minutes without activity
+define('ADMIN_IDLE_MINUTES', 30);
+
 date_default_timezone_set('Asia/Colombo');
