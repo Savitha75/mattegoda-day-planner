@@ -35,6 +35,8 @@ final class Place
     public readonly ?int $travelMin;
     public readonly ?string $infoSource;
     public readonly ?string $updatedAt;
+    public readonly ?string $createdAt;    // FR-53
+    public readonly bool $isActive;        // FR-51: false = deleted (hidden from visitors)
     public readonly ?float $nearbyKm;      // straight-line km from another place (findNearby only)
 
     private function __construct(array $row)
@@ -67,6 +69,8 @@ final class Place
         $this->travelMin        = $int('travel_min');
         $this->infoSource       = $row['info_source'] ?? null;
         $this->updatedAt        = $row['updated_at'] ?? null;
+        $this->createdAt        = $row['created_at'] ?? null;
+        $this->isActive         = (int) ($row['is_active'] ?? 1) === 1;
         $this->nearbyKm         = $float('nearby_km');
     }
 
@@ -133,7 +137,7 @@ final class Place
     }
 
     /** FR-12, FR-17: one ACTIVE place with all fields, or null. */
-    public static function findById(int $id): ?self
+    public static function findById(int $id, bool $includeInactive = false): ?self
     {
         $stmt = Database::getConnection()->prepare(
             'SELECT p.*,
@@ -141,7 +145,7 @@ final class Place
                        FROM place_category pc
                       WHERE pc.place_id = p.place_id) AS category_ids
                FROM place p
-              WHERE p.place_id = ? AND p.is_active = 1'
+              WHERE p.place_id = ?' . ($includeInactive ? '' : ' AND p.is_active = 1')
         );
         $stmt->execute([$id]);
         $row = $stmt->fetch();
@@ -183,6 +187,74 @@ final class Place
         $stmt->execute();
 
         return array_map(fn(array $row) => new self($row), $stmt->fetchAll());
+    }
+
+    /** Columns the admin form may write. Only these names can ever reach the SQL in save(). */
+    private const EDITABLE = [
+        'name', 'summary', 'description', 'latitude', 'longitude', 'access_point',
+        'opening_time', 'closing_time', 'closed_days', 'entry_fee', 'best_time',
+        'visit_duration_min', 'travel_tips', 'facilities', 'info_source', 'distance_km', 'travel_min',
+    ];
+
+    /** FR-44: every place, active and deleted, for the admin list (plain rows, not objects) */
+    public static function adminList(): array
+    {
+        return Database::getConnection()->query(
+            'SELECT p.place_id, p.name, p.distance_km, p.is_active, p.updated_at,
+                    c.name AS primary_category
+               FROM place p
+               LEFT JOIN place_category pc ON pc.place_id = p.place_id AND pc.is_primary = 1
+               LEFT JOIN category c        ON c.category_id = pc.category_id
+              ORDER BY p.is_active DESC, p.name'
+        )->fetchAll();
+    }
+
+    /**
+     * FR-45, FR-46, FR-50, FR-53: add a place ($placeId null) or update one, with its categories.
+     * @param array<string, mixed> $data  column => value (from PlaceValidator, plus distance_km and travel_min)
+     * @param int[] $categoryIds
+     * @return int  the place_id
+     */
+    public static function save(array $data, array $categoryIds, int $primaryId, ?int $placeId = null): int
+    {
+        $data    = array_intersect_key($data, array_flip(self::EDITABLE));   // never an unknown column
+        $columns = array_keys($data);
+
+        $db = Database::getConnection();
+        $db->beginTransaction();                     // place and its categories change together
+        try {
+            if ($placeId === null) {
+                $db->prepare('INSERT INTO place (' . implode(', ', $columns) . ')
+                              VALUES (' . implode(', ', array_fill(0, count($columns), '?')) . ')')
+                   ->execute(array_values($data));
+                $placeId = (int) $db->lastInsertId();
+            } else {
+                $set = implode(', ', array_map(fn(string $c) => $c . ' = ?', $columns));
+                $db->prepare('UPDATE place SET ' . $set . ', updated_at = NOW() WHERE place_id = ?')
+                   ->execute([...array_values($data), $placeId]);
+                $db->prepare('DELETE FROM place_category WHERE place_id = ?')->execute([$placeId]);
+            }
+
+            $link = $db->prepare('INSERT INTO place_category (place_id, category_id, is_primary) VALUES (?, ?, ?)');
+            foreach ($categoryIds as $categoryId) {
+                $link->execute([$placeId, $categoryId, $categoryId === $primaryId ? 1 : 0]);
+            }
+            $db->commit();
+        } catch (Throwable $e) {
+            $db->rollBack();
+            throw $e;
+        }
+        return $placeId;
+    }
+
+    /** FR-51: soft delete. The row stays in the database; visitors no longer see it. */
+    public static function deactivate(int $id): bool
+    {
+        $stmt = Database::getConnection()->prepare(
+            'UPDATE place SET is_active = 0 WHERE place_id = ? AND is_active = 1'
+        );
+        $stmt->execute([$id]);
+        return $stmt->rowCount() === 1;
     }
 
     /** FR-14 @return PlacePhoto[] */

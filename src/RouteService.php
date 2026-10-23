@@ -9,6 +9,20 @@ final class RouteService
     public const SALGAS_LNG = 79.9691257;
 
     private const TIMEOUT_SECONDS = 10;   // FR-25: give up after 10 seconds
+    public const MAX_RADIUS_KM   = 25;   // FR-47, BR-01: places must be within 25 km by road
+
+    /** FR-47: road distance (km) and driving time (min) from Salgas Junction; null when OSRM fails (logged). */
+    public static function fromStart(float $lat, float $lng): ?array
+    {
+        $route = self::route([[self::SALGAS_LAT, self::SALGAS_LNG], [$lat, $lng]], false);
+        if ($route === null) {
+            return null;
+        }
+        return [
+            'distanceKm' => round($route['distance'] / 1000, 2),
+            'travelMin'  => (int) round($route['duration'] / 60),
+        ];
+    }
 
     /**
      * FR-23, FR-24: the road route through the points, in the order given.
@@ -17,7 +31,7 @@ final class RouteService
      * @return array|null  distance in metres, duration in seconds, legs, geometry;
      *                     null when OSRM fails (the failure is logged)
      */
-    public static function route(array $points): ?array
+    public static function route(array $points, bool $withGeometry = true): ?array
     {
         if (count($points) < 2) {
             throw new InvalidArgumentException('A route needs at least two points.');
@@ -32,7 +46,9 @@ final class RouteService
             fn(array $p): string => sprintf('%.6F,%.6F', $p[1], $p[0]),
             $points
         ));
-        $url = OSRM_URL . '/route/v1/driving/' . $coords . '?overview=full&geometries=geojson';
+        // The map needs the road shape; the 25 km check (FR-47) only needs the distance, which is a much smaller answer
+        $overview = $withGeometry ? 'overview=full&geometries=geojson' : 'overview=false';
+        $url = OSRM_URL . '/route/v1/driving/' . $coords . '?' . $overview;
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -66,10 +82,9 @@ final class RouteService
                 'duration' => (float) $leg['duration'],
             ], $route['legs']),
             // GeoJSON is [lng, lat]; Leaflet wants [lat, lng]
-            'geometry' => array_map(
-                fn(array $c): array => [(float) $c[1], (float) $c[0]],
-                $route['geometry']['coordinates']
-            ),
+            'geometry' => $withGeometry
+                ? array_map(fn(array $c): array => [(float) $c[1], (float) $c[0]], $route['geometry']['coordinates'])
+                : [],
         ];
     }
 }
