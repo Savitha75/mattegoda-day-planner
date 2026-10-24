@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 require __DIR__ . '/../includes/bootstrap.php';
-AuthService::requireLogin();                           // FR-42, FR-43: always the first line of an admin page
+AuthService::requireLogin();                           // FR-42, FR-43: this must be the first line of every admin page
 
 $places = Place::adminList();                          // FR-44: active and deleted places
 $active = count(array_filter($places, fn(array $p) => (int) $p['is_active'] === 1));

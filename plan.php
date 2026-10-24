@@ -74,6 +74,6 @@ require __DIR__ . '/includes/header.php';
 </noscript>
 </div><!-- /.plan-screen -->
 
-<!-- FR-36: printable summary, filled in by plan-page.js; hidden on screen, the only thing printed -->
+<!-- FR-36: printable summary. plan-page.js fills it in; it is hidden on screen and is the only part that prints -->
 <section id="print-summary" class="d-none d-print-block"></section>
 <?php require __DIR__ . '/includes/footer.php'; ?>

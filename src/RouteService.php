@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-/** Routing and distance services (OSRM): FR-23 to FR-25, later the 25 km check (FR-47). */
+/** OSRM routing: plan routes (FR-23 to FR-25) and the 25 km distance check (FR-47). */
 final class RouteService
 {
     /** Salgas Junction, Mattegoda: start point and centre of the 25 km radius (FR-19, BR-01) */
@@ -41,18 +41,18 @@ final class RouteService
             return null;
         }
 
-        // OSRM wants LONGITUDE first: "lng,lat;lng,lat"
+        // OSRM expects longitude first: "lng,lat;lng,lat"
         $coords = implode(';', array_map(
             fn(array $p): string => sprintf('%.6F,%.6F', $p[1], $p[0]),
             $points
         ));
-        // The map needs the road shape; the 25 km check (FR-47) only needs the distance, which is a much smaller answer
+        // The map needs the full road shape. The 25 km check (FR-47) only needs the distance, so it asks for a much smaller response
         $overview = $withGeometry ? 'overview=full&geometries=geojson' : 'overview=false';
         $url = OSRM_URL . '/route/v1/driving/' . $coords . '?' . $overview;
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,                    // give the body back as a string
+            CURLOPT_RETURNTRANSFER => true,                    // return the body as a string
             CURLOPT_TIMEOUT        => self::TIMEOUT_SECONDS,   // whole request, FR-25
             CURLOPT_USERAGENT      => APP_NAME . ' (ITE2953 student project)',
             CURLOPT_HTTPHEADER     => ['Accept: application/json'],

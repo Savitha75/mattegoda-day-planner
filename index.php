@@ -14,7 +14,7 @@ if (!is_string($sort) || !array_key_exists($sort, $sortOptions)) {
     $sort = 'distance_asc';
 }
 
-// FR-06, FR-07, FR-09: filters (same helpers as the map and the API, so they always agree)
+// FR-06, FR-07, FR-09: filters. The map and the API use the same helpers, so all three always match
 $allCategories = Category::findAll();
 $selected      = selected_categories($allCategories);
 $q             = search_keyword();
@@ -45,7 +45,7 @@ require __DIR__ . '/includes/header.php';
   <a class="btn btn-outline-success btn-sm" href="<?= h($mapUrl) ?>">View on map</a>
 </div>
 
-<!-- FR-06 to FR-10: search, categories and sort in ONE form, so they always work together -->
+<!-- FR-06 to FR-10: search, categories and sort sit in one form, so they are submitted together -->
 <form method="get" class="card card-body shadow-sm mb-4" role="search" aria-label="Filter places">
   <div class="row g-2 align-items-end">
     <div class="col-md-6">

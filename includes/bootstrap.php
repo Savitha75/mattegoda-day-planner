@@ -4,7 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/helpers.php';
 
-// Autoload: "Place" → src/Place.php, loaded only when first used
+// Autoload: "Place" -> src/Place.php, loaded the first time it is used
 spl_autoload_register(function (string $class): void {
     $file = __DIR__ . '/../src/' . $class . '.php';
     if (is_file($file)) {
@@ -24,7 +24,7 @@ set_exception_handler(function (Throwable $e): void {
         : '<p>Sorry, something went wrong. Please try again later.</p>';
 });
 
-// Session (needed for flash messages now, admin login later)
+// Session (used for flash messages and the admin login)
 if (session_status() === PHP_SESSION_NONE) {
     session_start([
         'cookie_httponly'  => true,   // JavaScript can't read the session cookie

@@ -1,4 +1,4 @@
-// FR-32 to FR-34: the time budget for the day plan (pure calculation, it never touches the page)
+// FR-32 to FR-34: the time budget for the day plan (calculation only; it does not touch the page)
 var PlanBudget = (function () {
   'use strict';
 

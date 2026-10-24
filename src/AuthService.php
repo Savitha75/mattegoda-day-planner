@@ -4,8 +4,8 @@ declare(strict_types=1);
 /** Administrator login, lockout, page guard and logout (FR-37 to FR-43, NFR-09). */
 final class AuthService
 {
-    public const MAX_FAILS    = 5;    // FR-41: five consecutive failures...
-    public const LOCK_MINUTES = 15;   // ...block that username for 15 minutes
+    public const MAX_FAILS    = 5;    // FR-41: after five failed attempts in a row,
+    public const LOCK_MINUTES = 15;   // that username is locked for 15 minutes
 
     // bcrypt hash of a random string. When the username does not exist we still check a password
     // against it, so a wrong username takes as long as a wrong password (no timing clue).
@@ -54,7 +54,7 @@ final class AuthService
         $db->prepare('UPDATE admin_user SET failed_attempts = 0, locked_until = NULL, last_login = NOW()
                        WHERE admin_id = ?')->execute([$user['admin_id']]);
 
-        session_regenerate_id(true);           // new session ID after login (stops session fixation)
+        session_regenerate_id(true);           // new session ID after login (protects against session fixation)
         unset($_SESSION['csrf']);              // and a fresh form token
         $_SESSION['admin_id']      = (int) $user['admin_id'];
         $_SESSION['admin_name']    = $user['username'];

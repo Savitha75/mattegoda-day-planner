@@ -1,6 +1,6 @@
 -- Local Tourist Day-Visit Planner - seed data
 -- ITE2953, J A S R Perera (E2410994)
--- Source: docs/places-data.xlsx (verified place data sheet). Run AFTER schema.sql.
+-- Source: docs/places-data.xlsx (verified place data sheet). Import this file after schema.sql.
 -- distance_km holds the approximate SRS distance for now; it is replaced with the
 -- OSRM road distance from Salgas Junction when route support is built (FR-47).
 USE mattegoda_planner;

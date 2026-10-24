@@ -86,7 +86,7 @@ final class Place
         $where   = ['p.is_active = 1'];
         $params  = [];
 
-        // FR-06 to FR-08: places in ANY of the selected categories
+        // FR-06 to FR-08: places in any of the selected categories
         $categoryIds = $filters['categories'] ?? [];
         if ($categoryIds !== []) {
             $marks   = implode(',', array_fill(0, count($categoryIds), '?'));   // e.g. "?,?"
@@ -136,7 +136,7 @@ final class Place
         ));
     }
 
-    /** FR-12, FR-17: one ACTIVE place with all fields, or null. */
+    /** FR-12, FR-17: one active place with all its fields, or null. */
     public static function findById(int $id, bool $includeInactive = false): ?self
     {
         $stmt = Database::getConnection()->prepare(
